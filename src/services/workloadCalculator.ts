@@ -19,7 +19,6 @@ export function timeToMinutes(timeStr: string): number | null {
 
 /**
  * Converte minutos (sem sinal) para o formato "HH:MM".
- * Exemplo: 510 -> "08:30"
  */
 export function minutesToHHMM(totalMinutes: number): string {
   const absMins = Math.abs(Math.round(totalMinutes));
@@ -80,6 +79,30 @@ export function calculateInterval(startStr: string, endStr: string): { minutes: 
 }
 
 /**
+ * Calcula minutos trabalhados que caem no período noturno (22:00 às 05:00) segundo o Art. 73 CLT.
+ */
+export function calculateNightMinutesInInterval(startStr: string, endStr: string): number {
+  const start = timeToMinutes(startStr);
+  const end = timeToMinutes(endStr);
+  if (start === null || end === null) return 0;
+
+  let nightMinutes = 0;
+  let current = start;
+  let stop = end;
+  if (stop < current) stop += 24 * 60; // Virada de noite
+
+  for (let m = current; m < stop; m++) {
+    const timeOfDay = m % (24 * 60);
+    // Período noturno CLT: 22:00 (1320m) até 05:00 (300m)
+    if (timeOfDay >= 22 * 60 || timeOfDay < 5 * 60) {
+      nightMinutes++;
+    }
+  }
+
+  return nightMinutes;
+}
+
+/**
  * Realiza o cálculo da jornada de trabalho (4 ou 6 batidas)
  * e determina o saldo (Hora Extra, Débito ou Jornada Completa).
  */
@@ -96,7 +119,6 @@ export function calculateTimesheet(
   let p2Minutes = 0;
   let p3Minutes = 0;
 
-  // Se não houver pelo menos o primeiro par
   if (!punches.e1 || !punches.s1) {
     return {
       totalWorkedMinutes: 0,

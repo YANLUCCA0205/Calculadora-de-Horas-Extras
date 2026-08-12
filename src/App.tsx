@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { WorkloadType, PunchesModel, PunchesData, CalculationResult, SituationType } from './types';
-import { calculateTimesheet, timeToMinutes, getTargetMinutes } from './services/workloadCalculator';
+import { calculateTimesheet, timeToMinutes, getTargetMinutes, calculateNightMinutesInInterval } from './services/workloadCalculator';
 import { StatusBadge } from './components/StatusBadge';
-import { Clock, RotateCcw, AlertCircle, Calculator } from 'lucide-react';
+import { Clock, RotateCcw, AlertCircle, Calculator, Moon, MoonStar } from 'lucide-react';
 
 /**
  * Retorna o título da seção de saldo (substitui "SALDO APURADO" por "HORAS EXTRAS" ou "HORAS FALTAS")
@@ -40,6 +40,9 @@ export const App: React.FC = () => {
   const [customWorkload, setCustomWorkload] = useState<string>('07:20');
   const [punchesModel, setPunchesModel] = useState<PunchesModel>(4);
 
+  // Campo opcional para teste do Art. 66 (Interjornada - Saída do dia anterior)
+  const [previousDayExit, setPreviousDayExit] = useState<string>('');
+
   // Campos por padrão completamente LIMPOS sem horário nenhum
   const [punches, setPunches] = useState<PunchesData>({
     e1: '',
@@ -51,6 +54,7 @@ export const App: React.FC = () => {
   });
 
   const [calculation, setCalculation] = useState<CalculationResult | null>(null);
+  const [nightMinutesInfo, setNightMinutesInfo] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handlePunchChange = (field: keyof PunchesData, value: string) => {
@@ -58,6 +62,7 @@ export const App: React.FC = () => {
     if (calculation || errorMessage) {
       setCalculation(null);
       setErrorMessage(null);
+      setNightMinutesInfo(0);
     }
   };
 
@@ -65,24 +70,29 @@ export const App: React.FC = () => {
     setPunchesModel(model);
     setCalculation(null);
     setErrorMessage(null);
+    setNightMinutesInfo(0);
   };
 
   const handleWorkloadChange = (type: WorkloadType) => {
     setWorkloadType(type);
     setCalculation(null);
     setErrorMessage(null);
+    setNightMinutesInfo(0);
   };
 
   const handleReset = () => {
     setPunches({ e1: '', s1: '', e2: '', s2: '', e3: '', s3: '' });
+    setPreviousDayExit('');
     setCalculation(null);
     setErrorMessage(null);
+    setNightMinutesInfo(0);
   };
 
-  // Função de validação dos horários
+  // Função de validação dos horários e leis trabalhistas (CLT A, B, D)
   const validateAndCalculate = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setNightMinutesInfo(0);
 
     const targetMins = getTargetMinutes(workloadType, customWorkload);
 
@@ -166,7 +176,25 @@ export const App: React.FC = () => {
       }
     }
 
-    // 4. VALIDAÇÃO LEGAL CLT (Art. 71): Máximo de 6 horas contínuas de trabalho sem intervalo
+    // 4. VALIDAÇÃO LEGAL B (Art. 66 CLT): Descanso Interjornada mínimo de 11 horas entre expedientes
+    if (previousDayExit && previousDayExit.trim()) {
+      const prevExitMins = timeToMinutes(previousDayExit);
+      if (prevExitMins !== null) {
+        let restMins = e1 - prevExitMins;
+        if (restMins < 0) restMins += 24 * 60; // virada de dia
+
+        if (restMins < 11 * 60) {
+          const restH = Math.floor(restMins / 60);
+          const restM = restMins % 60;
+          const restStr = `${restH}h${restM > 0 ? restM + 'm' : ''}`;
+          setErrorMessage(`Infração CLT (Art. 66): O descanso interjornada entre a Saída do Dia Anterior (${previousDayExit}) e a Entrada 1 (${punches.e1}) foi de apenas ${restStr}. A legislação exige no mínimo 11 horas consecutivas de descanso entre dois expedientes.`);
+          setCalculation(null);
+          return;
+        }
+      }
+    }
+
+    // 5. VALIDAÇÃO LEGAL CLT (Art. 71 Caput & § 1º): Intervalo de Almoço
     const maxContinuousMinutes = 6 * 60; // 360 minutos = 6 horas
 
     const p1Minutes = s1 - e1;
@@ -201,7 +229,7 @@ export const App: React.FC = () => {
       }
     }
 
-    // 5. VALIDAÇÃO LEGAL CLT (Art. 71 Caput): Intervalo Mínimo de Almoço de 1 hora (60 minutos) para jornadas > 6h
+    // Intervalo de Almoço mínimo de 1 hora para jornadas > 6h
     if (targetMins > 6 * 60) {
       const mainLunchMinutes = e2 - s1;
       if (mainLunchMinutes < 60) {
@@ -211,17 +239,26 @@ export const App: React.FC = () => {
       }
     }
 
-    // 6. VALIDAÇÃO LEGAL CLT (Art. 59): Limite Máximo de 2 horas extras diárias (Jornada Máxima de 10h diárias)
+    // 6. VALIDAÇÃO LEGAL A (Art. 59 CLT): Limite Máximo de 2 horas extras diárias (Jornada Máxima de 10h diárias)
     const totalWorkedMinutes = p1Minutes + p2Minutes + (punchesModel === 6 && e3 !== null && s3 !== null ? s3 - e3 : 0);
-    const maxAllowedWork = targetMins + (2 * 60); // Meta + 2h extras max
-    if (totalWorkedMinutes > maxAllowedWork) {
-      const extraMinutes = totalWorkedMinutes - targetMins;
-      const extraH = Math.floor(extraMinutes / 60);
-      const extraM = extraMinutes % 60;
-      setErrorMessage(`Alerta CLT (Art. 59): As horas extras apuradas (${extraH}h${extraM > 0 ? extraM + 'm' : ''}) ultrapassam o limite legal máximo de 2 horas extras por dia.`);
+    const overtimeMinutes = totalWorkedMinutes - targetMins;
+
+    if (overtimeMinutes > 2 * 60) {
+      const extraH = Math.floor(overtimeMinutes / 60);
+      const extraM = overtimeMinutes % 60;
+      const extraStr = `${extraH}h${extraM > 0 ? extraM + 'm' : ''}`;
+      setErrorMessage(`Infração CLT (Art. 59): O saldo de horas extras apurado (+${extraStr}) ultrapassa o limite legal máximo permitido de 2 horas extras por dia (jornada máxima diária de 10 horas).`);
       setCalculation(null);
       return;
     }
+
+    // 7. VALIDAÇÃO LEGAL D (Art. 73 CLT): Trabalho Noturno (entre 22:00 e 05:00)
+    let totalNightMins = calculateNightMinutesInInterval(punches.e1, punches.s1) +
+      calculateNightMinutesInInterval(punches.e2, punches.s2);
+    if (punchesModel === 6 && punches.e3 && punches.s3) {
+      totalNightMins += calculateNightMinutesInInterval(punches.e3, punches.s3);
+    }
+    setNightMinutesInfo(totalNightMins);
 
     const res = calculateTimesheet(punchesModel, workloadType, punches, customWorkload);
     setCalculation(res);
@@ -366,6 +403,21 @@ export const App: React.FC = () => {
               >
                 <RotateCcw size={12} /> Limpar
               </button>
+            </div>
+
+            {/* Campo Opcional para Validação do Art. 66 CLT (Descanso Interjornada 11h) */}
+            <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px dashed var(--border-color)' }}>
+              <label className="form-label" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Saída do Expediente Anterior (Opcional — Validação Art. 66 CLT - 11h de descanso):
+              </label>
+              <input
+                type="time"
+                value={previousDayExit}
+                onChange={(e) => setPreviousDayExit(e.target.value)}
+                className="form-input form-input-time"
+                style={{ width: '140px', marginTop: '4px' }}
+                placeholder="22:00"
+              />
             </div>
 
             {/* Modo 4 Batidas */}
@@ -620,6 +672,32 @@ export const App: React.FC = () => {
                 ({calculation.formattedBalance})
               </div>
             </div>
+
+            {/* ALERTA DE TRABALHO NOTURNO (Validação D - Art. 73 CLT) */}
+            {nightMinutesInfo > 0 && (
+              <div
+                style={{
+                  backgroundColor: '#EFF6FF',
+                  border: '1px solid #93C5FD',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  color: '#1E40AF',
+                  fontSize: '0.825rem'
+                }}
+              >
+                <MoonStar size={20} style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>Aviso CLT (Art. 73 - Trabalho Noturno):</strong> Foram identificados{' '}
+                  <strong>
+                    {Math.floor(nightMinutesInfo / 60)}h{nightMinutesInfo % 60 > 0 ? (nightMinutesInfo % 60) + 'm' : ''}
+                  </strong>{' '}
+                  de trabalho no período noturno (entre 22:00 e 05:00). Aplica-se adicional noturno mínimo de 20% e hora reduzida de 52m30s.
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div
