@@ -1,12 +1,22 @@
 import React from 'react';
 import { SituationType } from '../types';
-import { TrendingUp, TrendingDown, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface StatusBadgeProps {
   situation: SituationType;
+  hasInfraction?: boolean;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ situation }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ situation, hasInfraction }) => {
+  if (hasInfraction) {
+    return (
+      <span className="badge-status debit">
+        <AlertTriangle size={16} />
+        <span>{situation === 'HORA EXTRA' ? 'HORA EXTRA (INFRAÇÃO CLT)' : situation}</span>
+      </span>
+    );
+  }
+
   if (situation === 'HORA EXTRA') {
     return (
       <span className="badge-status extra">

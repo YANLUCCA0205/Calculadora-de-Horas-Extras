@@ -572,13 +572,17 @@ export const App: React.FC = () => {
             style={{
               marginTop: '24px',
               backgroundColor:
-                calculation.situation === 'HORA EXTRA'
+                cltAlerts.length > 0
+                  ? '#FEF2F2'
+                  : calculation.situation === 'HORA EXTRA'
                   ? '#F0FDF4'
                   : calculation.situation === 'DÉBITO DE HORAS'
                   ? '#FEF2F2'
                   : '#F0F9FF',
               border: `2px solid ${
-                calculation.situation === 'HORA EXTRA'
+                cltAlerts.length > 0
+                  ? '#FCA5A5'
+                  : calculation.situation === 'HORA EXTRA'
                   ? '#86EFAC'
                   : calculation.situation === 'DÉBITO DE HORAS'
                   ? '#FCA5A5'
@@ -596,7 +600,7 @@ export const App: React.FC = () => {
               <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
                 Resultado do Cálculo
               </span>
-              <StatusBadge situation={calculation.situation} />
+              <StatusBadge situation={calculation.situation} hasInfraction={cltAlerts.length > 0} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -629,7 +633,9 @@ export const App: React.FC = () => {
                   letterSpacing: '0.08em',
                   marginBottom: '4px',
                   color:
-                    calculation.situation === 'HORA EXTRA'
+                    cltAlerts.length > 0
+                      ? '#B91C1C'
+                      : calculation.situation === 'HORA EXTRA'
                       ? '#15803D'
                       : calculation.situation === 'DÉBITO DE HORAS'
                       ? '#B91C1C'
@@ -644,7 +650,9 @@ export const App: React.FC = () => {
                   fontWeight: 800,
                   lineHeight: 1.2,
                   color:
-                    calculation.situation === 'HORA EXTRA'
+                    cltAlerts.length > 0
+                      ? '#B91C1C'
+                      : calculation.situation === 'HORA EXTRA'
                       ? '#15803D'
                       : calculation.situation === 'DÉBITO DE HORAS'
                       ? '#B91C1C'
