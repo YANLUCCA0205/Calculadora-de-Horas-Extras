@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { WorkloadType, PunchesModel, PunchesData, CalculationResult, SituationType } from './types';
 import { calculateTimesheet, timeToMinutes, getTargetMinutes, calculateNightMinutesInInterval } from './services/workloadCalculator';
 import { StatusBadge } from './components/StatusBadge';
-import { Clock, RotateCcw, AlertCircle, Calculator, Moon, MoonStar } from 'lucide-react';
+import { Clock, RotateCcw, AlertCircle, Calculator, MoonStar, AlertTriangle } from 'lucide-react';
 
 /**
  * Retorna o título da seção de saldo (substitui "SALDO APURADO" por "HORAS EXTRAS" ou "HORAS FALTAS")
@@ -54,6 +54,7 @@ export const App: React.FC = () => {
   });
 
   const [calculation, setCalculation] = useState<CalculationResult | null>(null);
+  const [cltAlerts, setCltAlerts] = useState<string[]>([]);
   const [nightMinutesInfo, setNightMinutesInfo] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -62,6 +63,7 @@ export const App: React.FC = () => {
     if (calculation || errorMessage) {
       setCalculation(null);
       setErrorMessage(null);
+      setCltAlerts([]);
       setNightMinutesInfo(0);
     }
   };
@@ -70,6 +72,7 @@ export const App: React.FC = () => {
     setPunchesModel(model);
     setCalculation(null);
     setErrorMessage(null);
+    setCltAlerts([]);
     setNightMinutesInfo(0);
   };
 
@@ -77,6 +80,7 @@ export const App: React.FC = () => {
     setWorkloadType(type);
     setCalculation(null);
     setErrorMessage(null);
+    setCltAlerts([]);
     setNightMinutesInfo(0);
   };
 
@@ -85,13 +89,15 @@ export const App: React.FC = () => {
     setPreviousDayExit('');
     setCalculation(null);
     setErrorMessage(null);
+    setCltAlerts([]);
     setNightMinutesInfo(0);
   };
 
-  // Função de validação dos horários e leis trabalhistas (CLT A, B, D)
+  // Função de cálculo com alertas legais (CLT) sem bloquear a apuração
   const validateAndCalculate = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setCltAlerts([]);
     setNightMinutesInfo(0);
 
     const targetMins = getTargetMinutes(workloadType, customWorkload);
@@ -137,7 +143,7 @@ export const App: React.FC = () => {
       }
     }
 
-    // 3. VALIDAÇÃO DE COERÊNCIA CRONOLÓGICA (Horários Ilógicos)
+    // 3. VALIDAÇÃO DE COERÊNCIA CRONOLÓGICA (Horários Ilógicos que impedem o cálculo)
     const e1 = timeToMinutes(punches.e1 || '')!;
     const s1 = timeToMinutes(punches.s1 || '')!;
     const e2 = timeToMinutes(punches.e2 || '')!;
@@ -176,90 +182,69 @@ export const App: React.FC = () => {
       }
     }
 
-    // 4. VALIDAÇÃO LEGAL B (Art. 66 CLT): Descanso Interjornada mínimo de 11 horas entre expedientes
-    if (previousDayExit && previousDayExit.trim()) {
-      const prevExitMins = timeToMinutes(previousDayExit);
-      if (prevExitMins !== null) {
-        let restMins = e1 - prevExitMins;
-        if (restMins < 0) restMins += 24 * 60; // virada de dia
+    // LISTA DE ALERTAS CLT (NÃO BLOQUEIAM O CÁLCULO DAS HORAS)
+    const alerts: string[] = [];
 
-        if (restMins < 11 * 60) {
-          const restH = Math.floor(restMins / 60);
-          const restM = restMins % 60;
-          const restStr = `${restH}h${restM > 0 ? restM + 'm' : ''}`;
-          setErrorMessage(`Infração CLT (Art. 66): O descanso interjornada entre a Saída do Dia Anterior (${previousDayExit}) e a Entrada 1 (${punches.e1}) foi de apenas ${restStr}. A legislação exige no mínimo 11 horas consecutivas de descanso entre dois expedientes.`);
-          setCalculation(null);
-          return;
-        }
-      }
-    }
-
-    // 5. VALIDAÇÃO LEGAL CLT (Art. 71 Caput & § 1º): Intervalo de Almoço
-    const maxContinuousMinutes = 6 * 60; // 360 minutos = 6 horas
-
+    // A. VALIDAÇÃO LEGAL (Art. 59 CLT): Limite de 2h de Horas Extras por dia
     const p1Minutes = s1 - e1;
-    if (p1Minutes > maxContinuousMinutes) {
-      const hours = Math.floor(p1Minutes / 60);
-      const mins = p1Minutes % 60;
-      const durationStr = `${hours}h${mins > 0 ? mins + 'm' : ''}`;
-      setErrorMessage(`Infração CLT (Art. 71): O 1º período de trabalho (${punches.e1} às ${punches.s1} = ${durationStr}) ultrapassa o limite legal máximo de 6 horas contínuas sem intervalo para refeição/almoço.`);
-      setCalculation(null);
-      return;
-    }
-
     const p2Minutes = s2 - e2;
-    if (p2Minutes > maxContinuousMinutes) {
-      const hours = Math.floor(p2Minutes / 60);
-      const mins = p2Minutes % 60;
-      const durationStr = `${hours}h${mins > 0 ? mins + 'm' : ''}`;
-      setErrorMessage(`Infração CLT (Art. 71): O 2º período de trabalho (${punches.e2} às ${punches.s2} = ${durationStr}) ultrapassa o limite legal máximo de 6 horas contínuas sem intervalo para refeição/almoço.`);
-      setCalculation(null);
-      return;
-    }
-
-    if (punchesModel === 6 && e3 !== null && s3 !== null) {
-      const p3Minutes = s3 - e3;
-      if (p3Minutes > maxContinuousMinutes) {
-        const hours = Math.floor(p3Minutes / 60);
-        const mins = p3Minutes % 60;
-        const durationStr = `${hours}h${mins > 0 ? mins + 'm' : ''}`;
-        setErrorMessage(`Infração CLT (Art. 71): O 3º período de trabalho (${punches.e3} às ${punches.s3} = ${durationStr}) ultrapassa o limite legal máximo de 6 horas contínuas sem intervalo para refeição/almoço.`);
-        setCalculation(null);
-        return;
-      }
-    }
-
-    // Intervalo de Almoço mínimo de 1 hora para jornadas > 6h
-    if (targetMins > 6 * 60) {
-      const mainLunchMinutes = e2 - s1;
-      if (mainLunchMinutes < 60) {
-        setErrorMessage(`Infração CLT (Art. 71): O intervalo de almoço/refeição entre a Saída 1 (${punches.s1}) e Entrada 2 (${punches.e2}) foi de apenas ${mainLunchMinutes} minutos. Para jornadas superiores a 6 horas, a lei exige no mínimo 1 hora (60 minutos) de intervalo.`);
-        setCalculation(null);
-        return;
-      }
-    }
-
-    // 6. VALIDAÇÃO LEGAL A (Art. 59 CLT): Limite Máximo de 2 horas extras diárias (Jornada Máxima de 10h diárias)
-    const totalWorkedMinutes = p1Minutes + p2Minutes + (punchesModel === 6 && e3 !== null && s3 !== null ? s3 - e3 : 0);
+    const p3Minutes = punchesModel === 6 && e3 !== null && s3 !== null ? s3 - e3 : 0;
+    const totalWorkedMinutes = p1Minutes + p2Minutes + p3Minutes;
     const overtimeMinutes = totalWorkedMinutes - targetMins;
 
     if (overtimeMinutes > 2 * 60) {
       const extraH = Math.floor(overtimeMinutes / 60);
       const extraM = overtimeMinutes % 60;
       const extraStr = `${extraH}h${extraM > 0 ? extraM + 'm' : ''}`;
-      setErrorMessage(`Infração CLT (Art. 59): O saldo de horas extras apurado (+${extraStr}) ultrapassa o limite legal máximo permitido de 2 horas extras por dia (jornada máxima diária de 10 horas).`);
-      setCalculation(null);
-      return;
+      alerts.push(`Infração CLT (Art. 59): O saldo apurado de horas extras (+${extraStr}) ultrapassa o limite legal máximo de 2 horas por dia.`);
     }
 
-    // 7. VALIDAÇÃO LEGAL D (Art. 73 CLT): Trabalho Noturno (entre 22:00 e 05:00)
+    // B. VALIDAÇÃO LEGAL (Art. 66 CLT): Descanso Interjornada mínimo de 11 horas
+    if (previousDayExit && previousDayExit.trim()) {
+      const prevExitMins = timeToMinutes(previousDayExit);
+      if (prevExitMins !== null) {
+        let restMins = e1 - prevExitMins;
+        if (restMins < 0) restMins += 24 * 60;
+
+        if (restMins < 11 * 60) {
+          const restH = Math.floor(restMins / 60);
+          const restM = restMins % 60;
+          const restStr = `${restH}h${restM > 0 ? restM + 'm' : ''}`;
+          alerts.push(`Infração CLT (Art. 66): O descanso interjornada entre a Saída do Dia Anterior (${previousDayExit}) e a Entrada 1 (${punches.e1}) foi de apenas ${restStr} (mínimo exigido: 11h).`);
+        }
+      }
+    }
+
+    // C. VALIDAÇÃO LEGAL (Art. 71 CLT): Período contínuo superior a 6h sem almoço
+    if (p1Minutes > 6 * 60) {
+      const hours = Math.floor(p1Minutes / 60);
+      const mins = p1Minutes % 60;
+      alerts.push(`Infração CLT (Art. 71): O 1º turno (${punches.e1} às ${punches.s1} = ${hours}h${mins > 0 ? mins + 'm' : ''}) ultrapassa 6 horas contínuas sem almoço.`);
+    }
+    if (p2Minutes > 6 * 60) {
+      const hours = Math.floor(p2Minutes / 60);
+      const mins = p2Minutes % 60;
+      alerts.push(`Infração CLT (Art. 71): O 2º turno (${punches.e2} às ${punches.s2} = ${hours}h${mins > 0 ? mins + 'm' : ''}) ultrapassa 6 horas contínuas sem almoço.`);
+    }
+
+    // Intervalo de Almoço mínimo de 1 hora para jornadas > 6h
+    if (targetMins > 6 * 60) {
+      const mainLunchMinutes = e2 - s1;
+      if (mainLunchMinutes < 60) {
+        alerts.push(`Infração CLT (Art. 71): O intervalo de almoço entre Saída 1 (${punches.s1}) e Entrada 2 (${punches.e2}) foi de apenas ${mainLunchMinutes} minutos (mínimo exigido: 60 minutos).`);
+      }
+    }
+
+    // D. VALIDAÇÃO LEGAL (Art. 73 CLT): Trabalho Noturno
     let totalNightMins = calculateNightMinutesInInterval(punches.e1, punches.s1) +
       calculateNightMinutesInInterval(punches.e2, punches.s2);
     if (punchesModel === 6 && punches.e3 && punches.s3) {
       totalNightMins += calculateNightMinutesInInterval(punches.e3, punches.s3);
     }
     setNightMinutesInfo(totalNightMins);
+    setCltAlerts(alerts);
 
+    // Efetua o cálculo normalmente apresentando o saldo total
     const res = calculateTimesheet(punchesModel, workloadType, punches, customWorkload);
     setCalculation(res);
   };
@@ -541,7 +526,7 @@ export const App: React.FC = () => {
             )}
           </div>
 
-          {/* Mensagem de Erro / Alerta */}
+          {/* Mensagem de Erro de Entrada / Cronologia */}
           {errorMessage && (
             <div
               style={{
@@ -581,7 +566,7 @@ export const App: React.FC = () => {
           </button>
         </form>
 
-        {/* 4. PAINEL DE RESULTADO FORMATADO */}
+        {/* 4. PAINEL DE RESULTADO FORMATADO COM ALERTAS LEGAIS */}
         {calculation ? (
           <div
             style={{
@@ -673,7 +658,32 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {/* ALERTA DE TRABALHO NOTURNO (Validação D - Art. 73 CLT) */}
+            {/* PAINEL DE ALERTAS CLT (INFRAÇÕES DA LEI EXIBIDAS SEM BLOQUEAR O CÁLCULO) */}
+            {cltAlerts.length > 0 && (
+              <div
+                style={{
+                  backgroundColor: '#FFFBEB',
+                  border: '1px solid #FCD34D',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#B45309', fontWeight: 800, fontSize: '0.85rem' }}>
+                  <AlertTriangle size={18} />
+                  <span>ALERTAS DE INFRAÇÃO TRABALHISTA (CLT):</span>
+                </div>
+                {cltAlerts.map((alert, idx) => (
+                  <div key={idx} style={{ fontSize: '0.825rem', color: '#92400E', paddingLeft: '26px' }}>
+                    • {alert}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ALERTA DE TRABALHO NOTURNO (Art. 73 CLT) */}
             {nightMinutesInfo > 0 && (
               <div
                 style={{
@@ -690,11 +700,11 @@ export const App: React.FC = () => {
               >
                 <MoonStar size={20} style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>Aviso CLT (Art. 73 - Trabalho Noturno):</strong> Foram identificados{' '}
+                  <strong>Aviso CLT (Art. 73 - Trabalho Noturno):</strong> Identificados{' '}
                   <strong>
                     {Math.floor(nightMinutesInfo / 60)}h{nightMinutesInfo % 60 > 0 ? (nightMinutesInfo % 60) + 'm' : ''}
                   </strong>{' '}
-                  de trabalho no período noturno (entre 22:00 e 05:00). Aplica-se adicional noturno mínimo de 20% e hora reduzida de 52m30s.
+                  de trabalho no período noturno (22:00 às 05:00). Aplica-se adicional noturno mínimo de 20% e hora reduzida.
                 </div>
               </div>
             )}
