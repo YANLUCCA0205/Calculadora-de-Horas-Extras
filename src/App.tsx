@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WorkloadType, PunchesModel, PunchesData, CalculationResult, SituationType } from './types';
-import { calculateTimesheet, timeToMinutes } from './services/workloadCalculator';
+import { calculateTimesheet, timeToMinutes, getTargetMinutes } from './services/workloadCalculator';
 import { StatusBadge } from './components/StatusBadge';
 import { Clock, RotateCcw, AlertCircle, Calculator } from 'lucide-react';
 
@@ -84,6 +84,8 @@ export const App: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
+    const targetMins = getTargetMinutes(workloadType, customWorkload);
+
     if (workloadType === 'custom') {
       if (!customWorkload || timeToMinutes(customWorkload) === null) {
         setErrorMessage('Por favor, informe uma jornada personalizada válida no formato HH:MM (ex: 06:00).');
@@ -164,7 +166,7 @@ export const App: React.FC = () => {
       }
     }
 
-    // 4. VALIDAÇÃO LEGAL (Art. 71 CLT: Máximo de 6 horas contínuas de trabalho sem almoço/intervalo)
+    // 4. VALIDAÇÃO LEGAL CLT (Art. 71): Máximo de 6 horas contínuas de trabalho sem intervalo
     const maxContinuousMinutes = 6 * 60; // 360 minutos = 6 horas
 
     const p1Minutes = s1 - e1;
@@ -197,6 +199,28 @@ export const App: React.FC = () => {
         setCalculation(null);
         return;
       }
+    }
+
+    // 5. VALIDAÇÃO LEGAL CLT (Art. 71 Caput): Intervalo Mínimo de Almoço de 1 hora (60 minutos) para jornadas > 6h
+    if (targetMins > 6 * 60) {
+      const mainLunchMinutes = e2 - s1;
+      if (mainLunchMinutes < 60) {
+        setErrorMessage(`Infração CLT (Art. 71): O intervalo de almoço/refeição entre a Saída 1 (${punches.s1}) e Entrada 2 (${punches.e2}) foi de apenas ${mainLunchMinutes} minutos. Para jornadas superiores a 6 horas, a lei exige no mínimo 1 hora (60 minutos) de intervalo.`);
+        setCalculation(null);
+        return;
+      }
+    }
+
+    // 6. VALIDAÇÃO LEGAL CLT (Art. 59): Limite Máximo de 2 horas extras diárias (Jornada Máxima de 10h diárias)
+    const totalWorkedMinutes = p1Minutes + p2Minutes + (punchesModel === 6 && e3 !== null && s3 !== null ? s3 - e3 : 0);
+    const maxAllowedWork = targetMins + (2 * 60); // Meta + 2h extras max
+    if (totalWorkedMinutes > maxAllowedWork) {
+      const extraMinutes = totalWorkedMinutes - targetMins;
+      const extraH = Math.floor(extraMinutes / 60);
+      const extraM = extraMinutes % 60;
+      setErrorMessage(`Alerta CLT (Art. 59): As horas extras apuradas (${extraH}h${extraM > 0 ? extraM + 'm' : ''}) ultrapassam o limite legal máximo de 2 horas extras por dia.`);
+      setCalculation(null);
+      return;
     }
 
     const res = calculateTimesheet(punchesModel, workloadType, punches, customWorkload);
