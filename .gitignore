@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Production build outputs
+dist/
+
+# Scratch & extracted temp assets
+extracted_brand_assets/
+public/assets/logo_horizontal_raw.png
+
+# Environment files
+.env
+.env.local
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
