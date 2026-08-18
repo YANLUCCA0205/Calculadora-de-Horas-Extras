@@ -250,28 +250,9 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#F8FAFC',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '24px 16px'
-      }}
-    >
+    <div className="app-container-wrapper">
       {/* Header com Logo Horizontal Pristino */}
-      <header
-        style={{
-          width: '100%',
-          maxWidth: '720px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          marginBottom: '24px'
-        }}
-      >
+      <header className="header-container">
         <img
           src="/assets/logo_horizontal_oficial.png?v=3"
           alt="UNIÃO LOGO NOVO - HORIZONTAL COLORIDO"
@@ -286,24 +267,14 @@ export const App: React.FC = () => {
       </header>
 
       {/* Main Container da Calculadora */}
-      <main
-        style={{
-          width: '100%',
-          maxWidth: '720px',
-          backgroundColor: '#FFFFFF',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-color)',
-          boxShadow: 'var(--shadow-md)',
-          padding: '28px'
-        }}
-      >
-        <form onSubmit={validateAndCalculate} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <main className="main-card">
+        <form onSubmit={validateAndCalculate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* 1. SELEÇÃO DA JORNADA */}
           <div>
             <label style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--uniao-blue)', display: 'block', marginBottom: '8px' }}>
               1. Jornada Prevista
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+            <div className="workload-grid">
               <button
                 type="button"
                 onClick={() => handleWorkloadChange('7h20')}
@@ -331,7 +302,7 @@ export const App: React.FC = () => {
             </div>
 
             {workloadType === 'custom' && (
-              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   Digite a jornada (HH:MM):
                 </span>
@@ -341,7 +312,7 @@ export const App: React.FC = () => {
                   onChange={(e) => setCustomWorkload(e.target.value)}
                   placeholder="06:00"
                   className="form-input form-input-time"
-                  style={{ width: '110px' }}
+                  style={{ width: '100%', maxWidth: '110px' }}
                 />
               </div>
             )}
@@ -352,7 +323,7 @@ export const App: React.FC = () => {
             <label style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--uniao-blue)', display: 'block', marginBottom: '8px' }}>
               2. Modelo de Batidas de Ponto
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="model-grid">
               <button
                 type="button"
                 onClick={() => handleModelChange(4)}
@@ -373,8 +344,8 @@ export const App: React.FC = () => {
           </div>
 
           {/* 3. CAMPOS DE PREENCHIMENTO DOS HORÁRIOS */}
-          <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '20px', borderRadius: 'var(--radius-md)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div className="section-subtle">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Clock size={18} color="var(--uniao-red)" />
                 Informe os Horários do Dia ({punchesModel} batidas):
@@ -400,14 +371,14 @@ export const App: React.FC = () => {
                 value={previousDayExit}
                 onChange={(e) => setPreviousDayExit(e.target.value)}
                 className="form-input form-input-time"
-                style={{ width: '140px', marginTop: '4px' }}
+                style={{ width: '100%', maxWidth: '140px', marginTop: '4px' }}
                 placeholder="22:00"
               />
             </div>
 
             {/* Modo 4 Batidas */}
             {punchesModel === 4 && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="punches-grid">
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Entrada 1</label>
                   <input
@@ -456,7 +427,7 @@ export const App: React.FC = () => {
 
             {/* Modo 6 Batidas */}
             {punchesModel === 6 && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="punches-grid">
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Entrada 1</label>
                   <input
@@ -539,7 +510,8 @@ export const App: React.FC = () => {
                 alignItems: 'center',
                 gap: '10px',
                 fontSize: '0.875rem',
-                fontWeight: 600
+                fontWeight: 600,
+                wordBreak: 'break-word'
               }}
             >
               <AlertCircle size={20} style={{ flexShrink: 0 }} />
@@ -596,28 +568,28 @@ export const App: React.FC = () => {
               boxShadow: 'var(--shadow-md)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
                 Resultado do Cálculo
               </span>
               <StatusBadge situation={calculation.situation} hasInfraction={cltAlerts.length > 0} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div style={{ backgroundColor: '#FFFFFF', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+            <div className="result-cards-grid">
+              <div className="result-card-box" style={{ backgroundColor: '#FFFFFF', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   Horas Trabalhadas
                 </div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--uniao-blue)' }}>
+                <div className="result-card-value" style={{ color: 'var(--uniao-blue)' }}>
                   {calculation.formattedWorked}
                 </div>
               </div>
 
-              <div style={{ backgroundColor: '#FFFFFF', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+              <div className="result-card-box" style={{ backgroundColor: '#FFFFFF', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   Jornada Prevista
                 </div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                <div className="result-card-value" style={{ color: 'var(--text-primary)' }}>
                   {calculation.formattedTarget}
                 </div>
               </div>
@@ -645,10 +617,8 @@ export const App: React.FC = () => {
                 {getResultHeaderTitle(calculation.situation)}
               </div>
               <div
+                className="result-title"
                 style={{
-                  fontSize: '2.4rem',
-                  fontWeight: 800,
-                  lineHeight: 1.2,
                   color:
                     cltAlerts.length > 0
                       ? '#B91C1C'
@@ -676,7 +646,8 @@ export const App: React.FC = () => {
                   padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px'
+                  gap: '8px',
+                  wordBreak: 'break-word'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#B45309', fontWeight: 800, fontSize: '0.85rem' }}>
@@ -703,7 +674,8 @@ export const App: React.FC = () => {
                   alignItems: 'center',
                   gap: '10px',
                   color: '#1E40AF',
-                  fontSize: '0.825rem'
+                  fontSize: '0.825rem',
+                  wordBreak: 'break-word'
                 }}
               >
                 <MoonStar size={20} style={{ flexShrink: 0 }} />

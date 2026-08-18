@@ -51,10 +51,16 @@
 }
 
 /* CSS Reset & Base */
-* {
+html, body {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+*, *:before, *:after {
+  box-sizing: border-box;
 }
 
 body {
@@ -132,6 +138,8 @@ button, input, select, textarea {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   border: 1px solid transparent;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .badge-status.extra {
@@ -158,21 +166,28 @@ button, input, select, textarea {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 16px;
+  min-width: 0;
+  width: 100%;
 }
 
 .form-label {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary);
+  word-break: break-word;
 }
 
 .form-input, .form-select {
-  padding: 10px 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   background-color: var(--bg-surface);
   color: var(--text-primary);
   transition: all 0.15s ease;
+  min-width: 0;
 }
 
 .form-input:focus, .form-select:focus {
@@ -183,10 +198,97 @@ button, input, select, textarea {
 
 .form-input-time {
   font-family: monospace;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0px;
   text-align: center;
+  padding: 10px 6px;
+}
+
+/* WebKit specific time indicator spacing */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  margin-left: 2px;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* App Responsive Layout Classes */
+.app-container-wrapper {
+  min-height: 100vh;
+  background-color: #F8FAFC;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  width: 100%;
+}
+
+.header-container {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.main-card {
+  width: 100%;
+  max-width: 720px;
+  background-color: #FFFFFF;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
+  padding: 28px;
+}
+
+.section-subtle {
+  background-color: var(--bg-subtle);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  width: 100%;
+}
+
+.workload-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.punches-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.result-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.result-title {
+  font-size: clamp(1.4rem, 5vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.result-card-value {
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-weight: 800;
+  word-break: break-word;
 }
 
 /* Primary & Secondary Buttons */
@@ -202,6 +304,8 @@ button, input, select, textarea {
   cursor: pointer;
   border: 1px solid transparent;
   transition: all 0.2s ease;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .btn-primary {
@@ -280,12 +384,83 @@ button, input, select, textarea {
   background-color: #F8FAFC;
 }
 
-/* Responsive Utilities */
-@media (max-width: 768px) {
+/* Responsive Utilities & Media Queries */
+@media (max-width: 640px) {
   .app-container {
     flex-direction: column;
   }
   .content-body {
     padding: 16px;
+  }
+
+  .app-container-wrapper {
+    padding: 16px 10px;
+  }
+
+  .header-container {
+    margin-bottom: 16px;
+  }
+
+  .main-card {
+    padding: 16px 12px;
+    border-radius: var(--radius-md);
+  }
+
+  .section-subtle {
+    padding: 14px 10px;
+  }
+
+  .punches-grid {
+    gap: 10px 8px;
+  }
+
+  .form-input-time {
+    font-size: 0.925rem;
+    padding: 8px 4px;
+  }
+
+  .workload-grid {
+    gap: 6px;
+  }
+
+  .workload-grid .btn {
+    padding: 10px 4px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .model-grid {
+    gap: 6px;
+  }
+
+  .model-grid .btn {
+    padding: 10px 6px !important;
+    font-size: 0.85rem !important;
+  }
+
+  .result-cards-grid {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-container-wrapper {
+    padding: 12px 6px;
+  }
+
+  .main-card {
+    padding: 12px 8px;
+  }
+
+  .section-subtle {
+    padding: 10px 6px;
+  }
+
+  .form-input-time {
+    font-size: 0.85rem;
+    padding: 6px 2px;
+  }
+  
+  .form-label {
+    font-size: 0.78rem;
   }
 }
